@@ -183,54 +183,117 @@ void eliminarPostre(const char *nombre)
 
   printf("Postre eliminado.\n");
 }
-
-/*--------------------  Menú --------------------*/
-void menu(void)
+void insertarPostreOrdenado(const char *nombre, char ingredientes[][MAX_LONGITUD], int cantidad)
 {
-  int opc;
+  if (totalPostres >= MAX_POSTRES)
+  {
+    printf("No se pueden agregar más postres.\n");
+    return;
+  }
+
+  int pos = 0;
+  while (pos < totalPostres && strcmp(postres[pos].nombre, nombre) < 0)
+  {
+    pos++;
+  }
+
+  for (int i = totalPostres; i > pos; i--)
+  {
+    postres[i] = postres[i - 1];
+  }
+
+  strcpy(postres[pos].nombre, nombre);
+  postres[pos].inicio = postres[pos].fin = NULL;
+
+  for (int i = 0; i < cantidad; i++)
+  {
+    insertarIngrediente(nombre, ingredientes[i]);
+  }
+
+  totalPostres++;
+  printf("Postre '%s' agregado.\n", nombre);
+}
+
+void menu()
+{
+  int opcion;
+  char nombrePostre[MAX_LONGITUD];
+  char nombreIngrediente[MAX_LONGITUD];
+  char ingredientes[10][MAX_LONGITUD];
+  int cantidad;
+
   do
   {
-    puts(
-        "\n=== Datos de Postres ===\n"
-        "1) Dado el nombre de un postre, imprima la lista de todos sus ingredientes.\n"
-        "2) Dado el nombre de un postre, inserte nuevos ingredientes a su correspondiente lista.\n"
-        "3) Dado el nombre de un postre, elimine alguno de sus ingredientes.\n"
-        "4) Dé de alta un nuevo postre con todos sus ingredientes.\n"
-        "5) Dé de baja un postre con todos sus ingredientes.\n"
-        "0) Salir\n");
-    printf("Opción: ");
-    if (scanf("%d", &opc) != 1)
-      exit(EXIT_FAILURE);
+    printf("\nMenu:\n");
+    printf("1. Imprimir ingredientes de un postre\n");
+    printf("2. Agregar ingrediente a un postre\n");
+    printf("3. Eliminar ingrediente de un postre\n");
+    printf("4. Agregar nuevo postre\n");
+    printf("5. Eliminar postre\n");
+    printf("0. Salir\n");
+    printf("Opcion: ");
+    scanf("%d", &opcion);
+    getchar(); // limpiar buffer
 
-    switch (opc)
+    switch (opcion)
     {
     case 1:
+      printf("Nombre del postre: ");
+      fgets(nombrePostre, MAX_LONGITUD, stdin);
+      nombrePostre[strcspn(nombrePostre, "\n")] = '\0';
+      imprimirIngredientes(nombrePostre);
       break;
 
     case 2:
+      printf("Nombre del postre: ");
+      fgets(nombrePostre, MAX_LONGITUD, stdin);
+      nombrePostre[strcspn(nombrePostre, "\n")] = '\0';
+      printf("Ingrediente a agregar: ");
+      fgets(nombreIngrediente, MAX_LONGITUD, stdin);
+      nombreIngrediente[strcspn(nombreIngrediente, "\n")] = '\0';
+      insertarIngrediente(nombrePostre, nombreIngrediente);
       break;
 
     case 3:
+      printf("Nombre del postre: ");
+      fgets(nombrePostre, MAX_LONGITUD, stdin);
+      nombrePostre[strcspn(nombrePostre, "\n")] = '\0';
+      printf("Ingrediente a eliminar: ");
+      fgets(nombreIngrediente, MAX_LONGITUD, stdin);
+      nombreIngrediente[strcspn(nombreIngrediente, "\n")] = '\0';
+      eliminarIngrediente(nombrePostre, nombreIngrediente);
       break;
 
     case 4:
+      printf("Nombre del nuevo postre: ");
+      fgets(nombrePostre, MAX_LONGITUD, stdin);
+      nombrePostre[strcspn(nombrePostre, "\n")] = '\0';
+
+      printf("Cantidad de ingredientes: ");
+      scanf("%d", &cantidad);
+      getchar();
+
+      for (int i = 0; i < cantidad; i++)
+      {
+        printf("Ingrediente %d: ", i + 1);
+        fgets(ingredientes[i], MAX_LONGITUD, stdin);
+        ingredientes[i][strcspn(ingredientes[i], "\n")] = '\0';
+      }
+
+      insertarPostreOrdenado(nombrePostre, ingredientes, cantidad);
       break;
 
     case 5:
+      printf("Nombre del postre a eliminar: ");
+      fgets(nombrePostre, MAX_LONGITUD, stdin);
+      nombrePostre[strcspn(nombrePostre, "\n")] = '\0';
+      eliminarPostre(nombrePostre);
       break;
-
-    case 0:
-      puts("Fin del programa.");
-      break;
-
-    default:
-      puts("Opción no válida.");
     }
-  } while (opc != 0);
+  } while (opcion != 0);
 }
 
-/*--------------------  main --------------------*/
-int main(void)
+int main()
 {
   menu();
   return 0;
