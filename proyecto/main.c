@@ -44,7 +44,8 @@ int totalPostres = 0;
 Ingrediente *crearIngrediente(const char *nombre)
 {
   Ingrediente *nuevo = (Ingrediente *)malloc(sizeof(Ingrediente));
-  strncpy(nuevo->nombre, nombre, MAX_LONGITUD);
+  strncpy(nuevo->nombre, nombre, MAX_LONGITUD - 1);
+  nuevo->nombre[MAX_LONGITUD - 1] = '\0';
   nuevo->sig = nuevo->prev = NULL;
   return nuevo;
 }
@@ -89,13 +90,13 @@ void insertarIngrediente(const char *nombrePostre, const char *nombreIngrediente
   }
 
   Ingrediente *nuevo = crearIngrediente(nombreIngrediente);
-  if (!postres[index].inicio)
+  if (postres[index].inicio == NULL)
   {
     postres[index].inicio = postres[index].fin = nuevo;
   }
   else
   {
-    postres[index].inicio->sig = nuevo;
+    postres[index].fin->sig = nuevo;
     nuevo->prev = postres[index].fin;
     postres[index].fin = nuevo;
   }
@@ -205,12 +206,12 @@ void insertarPostreOrdenado(const char *nombre, char ingredientes[][MAX_LONGITUD
   strcpy(postres[pos].nombre, nombre);
   postres[pos].inicio = postres[pos].fin = NULL;
 
+  totalPostres++;
   for (int i = 0; i < cantidad; i++)
   {
     insertarIngrediente(nombre, ingredientes[i]);
   }
 
-  totalPostres++;
   printf("Postre '%s' agregado.\n", nombre);
 }
 
