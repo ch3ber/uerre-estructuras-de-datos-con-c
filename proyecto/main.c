@@ -21,281 +21,268 @@ Eugenio Salinas Montemayor - 740960
 #include <stdlib.h>
 #include <string.h>
 
-#define MAX_LONGITUD 50
-#define MAX_POSTRES 50
+#define MAX_POSTRES 100
+#define MAX_NOMBRE 50
+#define MAX_ING 50
 
 typedef struct Ingrediente
 {
-  char nombre[MAX_LONGITUD];
+  char nombre[MAX_ING];
   struct Ingrediente *sig;
-  struct Ingrediente *prev;
 } Ingrediente;
 
 typedef struct
 {
-  char nombre[MAX_LONGITUD];
-  Ingrediente *inicio;
-  Ingrediente *fin;
+  char nombre[MAX_NOMBRE];
+  Ingrediente *ingredientes;
 } Postre;
 
-Postre postres[MAX_POSTRES];
-int totalPostres = 0;
-
-Ingrediente *crearIngrediente(const char *nombre)
+void insertar_ingrediente(Postre *p, const char *ing)
 {
-  Ingrediente *nuevo = (Ingrediente *)malloc(sizeof(Ingrediente));
-  strncpy(nuevo->nombre, nombre, MAX_LONGITUD - 1);
-  nuevo->nombre[MAX_LONGITUD - 1] = '\0';
-  nuevo->sig = nuevo->prev = NULL;
-  return nuevo;
-}
-
-int buscarPostre(const char *nombre)
-{
-  for (int i = 0; i < totalPostres; i++)
+  Ingrediente *nuevo = malloc(sizeof(Ingrediente));
+  if (!nuevo)
   {
-    if (strcmp(postres[i].nombre, nombre) == 0)
-    {
-      return i;
-    }
-  }
-  return -1;
-}
-
-void imprimirIngredientes(const char *nombre)
-{
-  int index = buscarPostre(nombre);
-  if (index == -1)
-  {
-    printf("Postre no encontrado.\n");
+    perror("malloc");
     return;
   }
-
-  printf("Ingredientes de %s:\n", postres[index].nombre);
-  Ingrediente *temp = postres[index].inicio;
-  while (temp)
+  strncpy(nuevo->nombre, ing, MAX_ING);
+  nuevo->nombre[MAX_ING - 1] = '\0';
+  nuevo->sig = NULL;
+  if (!p->ingredientes)
   {
-    printf("- %s\n", temp->nombre);
-    temp = temp->sig;
-  }
-}
-
-void insertarIngrediente(const char *nombrePostre, const char *nombreIngrediente)
-{
-  int index = buscarPostre(nombrePostre);
-  if (index == -1)
-  {
-    printf("Postre no encontrado.\n");
-    return;
-  }
-
-  Ingrediente *nuevo = crearIngrediente(nombreIngrediente);
-  if (postres[index].inicio == NULL)
-  {
-    postres[index].inicio = postres[index].fin = nuevo;
+    p->ingredientes = nuevo;
   }
   else
   {
-    postres[index].fin->sig = nuevo;
-    nuevo->prev = postres[index].fin;
-    postres[index].fin = nuevo;
+    Ingrediente *aux = p->ingredientes;
+    while (aux->sig)
+      aux = aux->sig;
+    aux->sig = nuevo;
   }
-
-  printf("Ingrediente '%s' agregado a '%s'.\n", nombreIngrediente, nombrePostre);
 }
 
-void eliminarIngrediente(const char *nombrePostre, const char *nombreIngrediente)
+void imprimir_ingredientes(Postre *p)
 {
-  // Buscar el postre por su nombre
-  int i = buscarPostre(nombrePostre);
-  if (i == -1)
+  if (!p->ingredientes)
   {
-    printf("Postre no encontrado.\n");
+    printf("(sin ingredientes)\n");
     return;
   }
-
-  // Buscar el ingrediente dentro de la lista del postre
-  Ingrediente *actual = postres[i].inicio;
-  while (actual != NULL && strcmp(actual->nombre, nombreIngrediente) != 0)
+  for (Ingrediente *aux = p->ingredientes; aux; aux = aux->sig)
   {
-    actual = actual->sig;
+    printf("- %s\n", aux->nombre);
   }
+}
 
-  // Si no se encontró el ingrediente
-  if (actual == NULL)
+void eliminar_ingrediente(Postre *p, const char *ing)
+{
+  Ingrediente *act = p->ingredientes, *prev = NULL;
+  while (act && strcmp(act->nombre, ing) != 0)
+  {
+    prev = act;
+    act = act->sig;
+  }
+  if (!act)
   {
     printf("Ingrediente no encontrado.\n");
     return;
   }
-
-  // Si el ingrediente tiene un anterior, actualizar su next
-  if (actual->prev != NULL)
-  {
-    actual->prev->sig = actual->sig;
-  }
+  if (prev)
+    prev->sig = act->sig;
   else
-  {
-    // Si es el primero de la lista, actualizar la cabeza
-    postres[i].inicio = actual->sig;
-  }
-
-  // Si el ingrediente tiene un siguiente, actualizar su prev
-  if (actual->sig != NULL)
-  {
-    actual->sig->prev = actual->prev;
-  }
-  else
-  {
-    // Si es el último de la lista, actualizar la cola
-    postres[i].fin = actual->prev;
-  }
-
-  // Liberar memoria del ingrediente eliminado
-  free(actual);
-  printf("Ingrediente eliminado correctamente.\n");
+    p->ingredientes = act->sig;
+  free(act);
+  printf("Ingrediente eliminado.\n");
 }
-void eliminarPostre(const char *nombre)
+
+void liberar_ingredientes(Ingrediente *ing)
 {
-  // Buscar el índice del postre por nombre
-  int index = buscarPostre(nombre);
-  if (index == -1)
+  while (ing)
   {
-    printf("Postre no encontrado.\n");
+    Ingrediente *tmp = ing;
+    ing = ing->sig;
+    free(tmp);
+  }
+}
+
+int buscar_postre(Postre postres[], int n, const char *nombre)
+{
+  for (int i = 0; i < n; i++)
+  {
+    if (strcmp(postres[i].nombre, nombre) == 0)
+      return i;
+  }
+  return -1;
+}
+
+void imprimir_postre(Postre postres[], int n)
+{
+  char nombre[MAX_NOMBRE];
+  printf("Nombre del postre: ");
+  fgets(nombre, MAX_NOMBRE, stdin);
+  nombre[strcspn(nombre, "\n")] = '\0';
+  int idx = buscar_postre(postres, n, nombre);
+  if (idx == -1)
+  {
+    printf("No existe el postre.\n");
     return;
   }
+  printf("Ingredientes de %s:\n", postres[idx].nombre);
+  imprimir_ingredientes(&postres[idx]);
+}
 
-  // Liberar todos los ingredientes del postre
-  Ingrediente *actual = postres[index].inicio;
-  while (actual != NULL)
+void agregar_ingredientes_postre(Postre postres[], int n)
+{
+  char nombre[MAX_NOMBRE];
+  printf("Nombre del postre: ");
+  fgets(nombre, MAX_NOMBRE, stdin);
+  nombre[strcspn(nombre, "\n")] = '\0';
+  int idx = buscar_postre(postres, n, nombre);
+  if (idx == -1)
   {
-    Ingrediente *temp = actual;
-    actual = actual->sig;
-    free(temp);
+    printf("No existe el postre.\n");
+    return;
   }
+  char ing[MAX_ING];
+  printf("Ingrese ingredientes (línea vacía para terminar)\n");
+  while (1)
+  {
+    printf("Ingrediente: ");
+    fgets(ing, MAX_ING, stdin);
+    if (ing[0] == '\n')
+      break;
+    ing[strcspn(ing, "\n")] = '\0';
+    insertar_ingrediente(&postres[idx], ing);
+  }
+}
 
-  // Eliminar el postre del arreglo moviendo todos los siguientes una posición
-  for (int i = index; i < totalPostres - 1; i++)
+void eliminar_ingrediente_postre(Postre postres[], int n)
+{
+  char nombre[MAX_NOMBRE];
+  printf("Nombre del postre: ");
+  fgets(nombre, MAX_NOMBRE, stdin);
+  nombre[strcspn(nombre, "\n")] = '\0';
+  int idx = buscar_postre(postres, n, nombre);
+  if (idx == -1)
+  {
+    printf("No existe el postre.\n");
+    return;
+  }
+  char ing[MAX_ING];
+  printf("Ingrediente a eliminar: ");
+  fgets(ing, MAX_ING, stdin);
+  ing[strcspn(ing, "\n")] = '\0';
+  eliminar_ingrediente(&postres[idx], ing);
+}
+
+void alta_postre(Postre postres[], int *n)
+{
+  if (*n >= MAX_POSTRES)
+  {
+    printf("Arreglo lleno.\n");
+    return;
+  }
+  char nombre[MAX_NOMBRE];
+  printf("Nombre del nuevo postre: ");
+  fgets(nombre, MAX_NOMBRE, stdin);
+  nombre[strcspn(nombre, "\n")] = '\0';
+  if (buscar_postre(postres, *n, nombre) != -1)
+  {
+    printf("El postre ya existe.\n");
+    return;
+  }
+  int pos = *n;
+  while (pos > 0 && strcmp(postres[pos - 1].nombre, nombre) > 0)
+  {
+    postres[pos] = postres[pos - 1];
+    pos--;
+  }
+  strcpy(postres[pos].nombre, nombre);
+  postres[pos].ingredientes = NULL;
+  char ing[MAX_ING];
+  printf("Ingrese ingredientes (línea vacía para terminar)\n");
+  while (1)
+  {
+    printf("Ingrediente: ");
+    fgets(ing, MAX_ING, stdin);
+    if (ing[0] == '\n')
+      break;
+    ing[strcspn(ing, "\n")] = '\0';
+    insertar_ingrediente(&postres[pos], ing);
+  }
+  (*n)++;
+}
+
+void baja_postre(Postre postres[], int *n)
+{
+  char nombre[MAX_NOMBRE];
+  printf("Nombre del postre a eliminar: ");
+  fgets(nombre, MAX_NOMBRE, stdin);
+  nombre[strcspn(nombre, "\n")] = '\0';
+  int idx = buscar_postre(postres, *n, nombre);
+  if (idx == -1)
+  {
+    printf("No existe el postre.\n");
+    return;
+  }
+  liberar_ingredientes(postres[idx].ingredientes);
+  for (int i = idx; i < *n - 1; i++)
   {
     postres[i] = postres[i + 1];
   }
-
-  // Disminuir el contador de postres
-  totalPostres--;
-
+  (*n)--;
   printf("Postre eliminado.\n");
-}
-void insertarPostreOrdenado(const char *nombre, char ingredientes[][MAX_LONGITUD], int cantidad)
-{
-  if (totalPostres >= MAX_POSTRES)
-  {
-    printf("No se pueden agregar más postres.\n");
-    return;
-  }
-
-  int pos = 0;
-  while (pos < totalPostres && strcmp(postres[pos].nombre, nombre) < 0)
-  {
-    pos++;
-  }
-
-  for (int i = totalPostres; i > pos; i--)
-  {
-    postres[i] = postres[i - 1];
-  }
-
-  strcpy(postres[pos].nombre, nombre);
-  postres[pos].inicio = postres[pos].fin = NULL;
-
-  totalPostres++;
-  for (int i = 0; i < cantidad; i++)
-  {
-    insertarIngrediente(nombre, ingredientes[i]);
-  }
-
-  printf("Postre '%s' agregado.\n", nombre);
-}
-
-void menu()
-{
-  int opcion;
-  char nombrePostre[MAX_LONGITUD];
-  char nombreIngrediente[MAX_LONGITUD];
-  char ingredientes[10][MAX_LONGITUD];
-  int cantidad;
-
-  do
-  {
-    printf("\nMenu:\n");
-    printf("1. Imprimir ingredientes de un postre\n");
-    printf("2. Agregar ingrediente a un postre\n");
-    printf("3. Eliminar ingrediente de un postre\n");
-    printf("4. Agregar nuevo postre\n");
-    printf("5. Eliminar postre\n");
-    printf("0. Salir\n");
-    printf("Opcion: ");
-    scanf("%d", &opcion);
-    getchar(); // limpiar buffer
-
-    switch (opcion)
-    {
-    case 1:
-      printf("Nombre del postre: ");
-      fgets(nombrePostre, MAX_LONGITUD, stdin);
-      nombrePostre[strcspn(nombrePostre, "\n")] = '\0';
-      imprimirIngredientes(nombrePostre);
-      break;
-
-    case 2:
-      printf("Nombre del postre: ");
-      fgets(nombrePostre, MAX_LONGITUD, stdin);
-      nombrePostre[strcspn(nombrePostre, "\n")] = '\0';
-      printf("Ingrediente a agregar: ");
-      fgets(nombreIngrediente, MAX_LONGITUD, stdin);
-      nombreIngrediente[strcspn(nombreIngrediente, "\n")] = '\0';
-      insertarIngrediente(nombrePostre, nombreIngrediente);
-      break;
-
-    case 3:
-      printf("Nombre del postre: ");
-      fgets(nombrePostre, MAX_LONGITUD, stdin);
-      nombrePostre[strcspn(nombrePostre, "\n")] = '\0';
-      printf("Ingrediente a eliminar: ");
-      fgets(nombreIngrediente, MAX_LONGITUD, stdin);
-      nombreIngrediente[strcspn(nombreIngrediente, "\n")] = '\0';
-      eliminarIngrediente(nombrePostre, nombreIngrediente);
-      break;
-
-    case 4:
-      printf("Nombre del nuevo postre: ");
-      fgets(nombrePostre, MAX_LONGITUD, stdin);
-      nombrePostre[strcspn(nombrePostre, "\n")] = '\0';
-
-      printf("Cantidad de ingredientes: ");
-      scanf("%d", &cantidad);
-      getchar();
-
-      for (int i = 0; i < cantidad; i++)
-      {
-        printf("Ingrediente %d: ", i + 1);
-        fgets(ingredientes[i], MAX_LONGITUD, stdin);
-        ingredientes[i][strcspn(ingredientes[i], "\n")] = '\0';
-      }
-
-      insertarPostreOrdenado(nombrePostre, ingredientes, cantidad);
-      break;
-
-    case 5:
-      printf("Nombre del postre a eliminar: ");
-      fgets(nombrePostre, MAX_LONGITUD, stdin);
-      nombrePostre[strcspn(nombrePostre, "\n")] = '\0';
-      eliminarPostre(nombrePostre);
-      break;
-    }
-  } while (opcion != 0);
 }
 
 int main()
 {
-  menu();
+  Postre postres[MAX_POSTRES];
+  int num_postres = 0;
+  int opcion;
+  do
+  {
+    printf("\n--- Gestión de Postres ---\n");
+    printf("1. Mostrar ingredientes de un postre\n");
+    printf("2. Añadir ingredientes a un postre\n");
+    printf("3. Eliminar ingrediente de un postre\n");
+    printf("4. Dar de alta un nuevo postre\n");
+    printf("5. Dar de baja un postre\n");
+    printf("0. Salir\n");
+    printf("Opción: ");
+    if (scanf("%d", &opcion) != 1)
+    {
+      while (getchar() != '\n')
+        ;
+      opcion = -1;
+    }
+    getchar();
+    switch (opcion)
+    {
+    case 1:
+      imprimir_postre(postres, num_postres);
+      break;
+    case 2:
+      agregar_ingredientes_postre(postres, num_postres);
+      break;
+    case 3:
+      eliminar_ingrediente_postre(postres, num_postres);
+      break;
+    case 4:
+      alta_postre(postres, &num_postres);
+      break;
+    case 5:
+      baja_postre(postres, &num_postres);
+      break;
+    case 0:
+      break;
+    default:
+      printf("Opción no válida.\n");
+    }
+  } while (opcion != 0);
+
+  for (int i = 0; i < num_postres; i++)
+  {
+    liberar_ingredientes(postres[i].ingredientes);
+  }
   return 0;
 }
